@@ -1,0 +1,6 @@
+vote:
+  replicas: 3
+result:
+  replicas: 2
+worker:
+  replicas: 2

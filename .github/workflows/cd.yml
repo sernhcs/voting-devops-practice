@@ -1,0 +1,33 @@
+name: CD — Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI — Build & Push"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get image SHA tag
+        id: sha
+        run: echo "tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy
+        run: |
+          helm upgrade --install voting ./voting-chart \
+            --set vote.image=ghcr.io/${{ github.repository }}/vote:${{ steps.sha.outputs.tag }} \
+            --atomic \
+            --timeout 2m
+        # En producción aquí iría la config del kubeconfig del cluster real:
+        # env:
+        #   KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
